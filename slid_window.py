@@ -3,8 +3,6 @@ import cv2
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
-image = mpimg.imread('test_images/test4.jpg')
-
 
 # Here is your draw_boxes function from the previous exercise
 def draw_boxes(img, bboxes, color=(0, 0, 255), thick=6):
@@ -61,14 +59,19 @@ def slide_window(img, x_start_stop=(None, None), y_start_stop=(None, None),
             endy = starty + xy_window[1]
             # Append window position to list
             window_list.append(((startx, starty), (endx, endy)))
-        # Return the list of windows
-
+            # Return the list of windows
     return window_list
 
 
-windows = slide_window(image, x_start_stop=(None, None), y_start_stop=(None, None),
-                       xy_window=(128, 128), xy_overlap=(0.5, 0.5))
+def main():
+    image = mpimg.imread('test_images/test4.jpg')
+    windows = slide_window(image, x_start_stop=(None, None), y_start_stop=(None, None),
+                           xy_window=(128, 128), xy_overlap=(0.5, 0.5))
 
-window_img = draw_boxes(image, windows, color=(0, 0, 255), thick=6)
-plt.imshow(window_img)
-plt.show()
+    window_img = draw_boxes(image, windows, color=(0, 0, 255), thick=6)
+    plt.imshow(window_img)
+    plt.show()
+
+
+if __name__ == '__main__':
+    main()
