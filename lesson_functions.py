@@ -2,6 +2,22 @@ import matplotlib.image as mpimg
 import numpy as np
 import cv2
 from skimage.feature import hog
+import os
+
+
+def load_images(folder, end_with=".png"):
+    """
+    load image file names into a list given a folder
+    :param folder: image folder
+    :param end_with: extension of image to load eg. (".png", ".jpg")
+    :return: list of image full path
+    """
+    images = []
+    for root, dirs, files in os.walk(folder):
+        for name in files:
+            if name.endswith(end_with):
+                images.append(os.path.join(root, name))
+    return images
 
 
 # Define a function to return HOG features and visualization
