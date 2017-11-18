@@ -11,6 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from skimage.feature import hog
 
 from cfg import *
+from sklearn.externals import joblib
 
 from lesson_functions import load_images, \
     get_hog_features, bin_spatial, color_hist, \
@@ -106,6 +107,7 @@ def search_windows(img, windows, clf, scaler, color_space='BGR',
 
 def pipeline(image, svc, X_scaler):
     draw_image = np.copy(image)
+    box_list = []
     for y_start_stop, xy_window, xy_overlap in zip(y_bound_list, xy_winshape, overlap_xy):
         windows = slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
                                xy_window=xy_window, xy_overlap=xy_overlap)
@@ -116,57 +118,63 @@ def pipeline(image, svc, X_scaler):
                                      cell_per_block=cell_per_block,
                                      hog_channel=hog_channel, spatial_feat=spatial_feat,
                                      hist_feat=hist_feat, hog_feat=hog_feat)
+        # print("hotwindows shape: ", np.shape(hot_windows))
+        box_list.extend(hot_windows)
+        # print("box_list shape: ", np.shape(box_list))
         color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
         draw_image = draw_boxes(draw_image, hot_windows, color=color,
                                 thick=3)
-    return draw_image
+    return draw_image, box_list
 
 
 def main():
-    from sklearn.externals import joblib
+
     scaler_filename = 'X_scaler.pkl'
     clf_filename = 'svc.pkl'
     X_scaler = joblib.load(scaler_filename)
     svc = joblib.load(clf_filename)
 
-    image = cv2.imread('test_images/test4.jpg')
+    image = cv2.imread('test_images/test1.jpg')
     # Uncomment the following line if you extracted training
     # data from .png images (scaled 0 to 1 by mpimg) and the
     # image you are searching is a .jpg (scaled 0 to 255)
     # image = image.astype(np.float32) / 255
     t = time.time()
-    draw_image = pipeline(image, svc, X_scaler)
+    draw_image, box_list = pipeline(image, svc, X_scaler)
     t2 = time.time()
+    # save hot_windows
+    box_list_filename = 'data_output/box_list.pkl'
+    joblib.dump(box_list, box_list_filename)
     print(round(t2 - t, 2), 'Seconds to test a single image')
     plt.imshow(cv2.cvtColor(draw_image, cv2.COLOR_BGR2RGB))
     plt.show()
 
-    # filename = os.path.abspath('project_video.mp4')
-    filename = os.path.abspath('test_video.mp4')
-    cap = cv2.VideoCapture(filename)
-    fps = cap.get(cv2.CAP_PROP_FPS)  # get fps
-    size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))  # get video resolution
-    # create video writer object
-    video_writer = cv2.VideoWriter('./output_videos/test_video_output.avi',
-                                   cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps, size)
-
-
-    ret, frame = cap.read()
-    cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
-    cv2.resizeWindow('frame', 600, 600)
-    while ret:
-        print("frame shape: ", frame.shape)
-        draw_image = pipeline(frame, svc, X_scaler)
-        cv2.imshow('frame', draw_image)
-        video_writer.write(draw_image)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-        ret, frame = cap.read()
-
-    cap.release()
-    video_writer.release()
-    cv2.destroyAllWindows()
+    # # filename = os.path.abspath('project_video.mp4')
+    # filename = os.path.abspath('test_video.mp4')
+    # cap = cv2.VideoCapture(filename)
+    # fps = cap.get(cv2.CAP_PROP_FPS)  # get fps
+    # size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+    #         int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))  # get video resolution
+    # # create video writer object
+    # video_writer = cv2.VideoWriter('./output_videos/test_video_output.avi',
+    #                                cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps, size)
+    #
+    #
+    # ret, frame = cap.read()
+    # cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
+    # cv2.resizeWindow('frame', 600, 600)
+    # while ret:
+    #     print("frame shape: ", frame.shape)
+    #     draw_image, hot_windows = pipeline(frame, svc, X_scaler)
+    #     cv2.imshow('frame', draw_image)
+    #     video_writer.write(draw_image)
+    #     if cv2.waitKey(1) & 0xFF == ord('q'):
+    #         break
+    #     ret, frame = cap.read()
+    #
+    # cap.release()
+    # video_writer.release()
+    # cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':

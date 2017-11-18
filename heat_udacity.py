@@ -4,14 +4,17 @@ import numpy as np
 import pickle
 import cv2
 from scipy.ndimage.measurements import label
+from sklearn.externals import joblib
 
 # Read in a pickle file with bboxes saved
 # Each item in the "all_bboxes" list will contain a
 # list of boxes for one of the images shown above
-box_list = pickle.load(open("bbox_pickle.p", "rb"))
+# box_list = pickle.load(open("bbox_pickle.p", "rb"))
+box_list_filename = 'data_output/box_list.pkl'
+box_list = joblib.load(box_list_filename)
 
 # Read in image similar to one shown above
-image = mpimg.imread('test_image.jpg')
+image = cv2.imread('test_images/test1.jpg')
 heat = np.zeros_like(image[:, :, 0]).astype(np.float)
 
 
@@ -20,6 +23,7 @@ def add_heat(heatmap, bbox_list):
     for box in bbox_list:
         # Add += 1 for all pixels inside each bbox
         # Assuming each "box" takes the form ((x1, y1), (x2, y2))
+        print(box)
         heatmap[box[0][1]:box[1][1], box[0][0]:box[1][0]] += 1
 
     # Return updated heatmap
@@ -64,9 +68,10 @@ draw_img = draw_labeled_bboxes(np.copy(image), labels)
 
 fig = plt.figure()
 plt.subplot(121)
-plt.imshow(draw_img)
+plt.imshow(cv2.cvtColor(draw_img, cv2.COLOR_BGR2RGB))
 plt.title('Car Positions')
 plt.subplot(122)
 plt.imshow(heatmap, cmap='hot')
 plt.title('Heat Map')
 fig.tight_layout()
+plt.show()
