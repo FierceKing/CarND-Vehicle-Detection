@@ -24,24 +24,24 @@ from sklearn.model_selection import train_test_split
 # Define a function to extract features from a single image window
 # This function is very similar to extract_features()
 # just for a single image rather than list of images
-def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
+def single_img_features(img, color_space='BGR', spatial_size=(32, 32),
                         hist_bins=32, orient=9,
                         pix_per_cell=8, cell_per_block=2, hog_channel=0,
                         spatial_feat=True, hist_feat=True, hog_feat=True):
     # 1) Define an empty list to receive features
     img_features = []
-    # 2) Apply color conversion if other than 'RGB'
-    if color_space != 'RGB':
+    # 2) Apply color conversion if other than 'BGR'
+    if color_space != 'BGR':
         if color_space == 'HSV':
-            feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+            feature_image = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         elif color_space == 'LUV':
-            feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2LUV)
+            feature_image = cv2.cvtColor(img, cv2.COLOR_BGR2LUV)
         elif color_space == 'HLS':
-            feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2HLS)
+            feature_image = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
         elif color_space == 'YUV':
-            feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YUV)
+            feature_image = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
         elif color_space == 'YCrCb':
-            feature_image = cv2.cvtColor(img, cv2.COLOR_RGB2YCrCb)
+            feature_image = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
     else:
         feature_image = np.copy(img)
     # 3) Compute spatial features if flag is set
@@ -74,7 +74,7 @@ def single_img_features(img, color_space='RGB', spatial_size=(32, 32),
 
 # Define a function you will pass an image
 # and the list of windows to be searched (output of slide_windows())
-def search_windows(img, windows, clf, scaler, color_space='RGB',
+def search_windows(img, windows, clf, scaler, color_space='BGR',
                    spatial_size=(32, 32), hist_bins=32,
                    hist_range=(0, 256), orient=9,
                    pix_per_cell=8, cell_per_block=2,
@@ -129,44 +129,44 @@ def main():
     X_scaler = joblib.load(scaler_filename)
     svc = joblib.load(clf_filename)
 
-    image = mpimg.imread('test_images/test4.jpg')
+    image = cv2.imread('test_images/test4.jpg')
     # Uncomment the following line if you extracted training
     # data from .png images (scaled 0 to 1 by mpimg) and the
     # image you are searching is a .jpg (scaled 0 to 255)
-    image = image.astype(np.float32) / 255
-
+    # image = image.astype(np.float32) / 255
+    t = time.time()
     draw_image = pipeline(image, svc, X_scaler)
-
-    plt.imshow(draw_image)
+    t2 = time.time()
+    print(round(t2 - t, 2), 'Seconds to test a single image')
+    plt.imshow(cv2.cvtColor(draw_image, cv2.COLOR_BGR2RGB))
     plt.show()
-    #
+
     # filename = os.path.abspath('project_video.mp4')
-    # cap = cv2.VideoCapture(filename)
-    # fps = cap.get(cv2.CAP_PROP_FPS)  # get fps
-    # size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-    #         int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))  # get video resolution
-    # # create video writer object
-    # video_writer = cv2.VideoWriter('./output_videos/project_output.avi',
-    #                                cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps, size)
-    #
-    #
-    # ret, frame = cap.read()
-    # cv2.namedWindow('image', cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow('image', 600, 600)
-    # while ret:
-    #     print("frame shape: ", frame.shape)
-    #     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    #     draw_image = pipeline(frame, svc, X_scaler)
-    #     draw_image = cv2.cvtColor(draw_image, cv2.COLOR_RGB2BGR)
-    #     cv2.imshow('frame', draw_image)
-    #     video_writer.write(draw_image)
-    #     # if cv2.waitKey(1) & 0xFF == ord('q'):
-    #     #     break
-    #     ret, frame = cap.read()
-    #
-    # cap.release()
-    # video_writer.release()
-    # cv2.destroyAllWindows()
+    filename = os.path.abspath('test_video.mp4')
+    cap = cv2.VideoCapture(filename)
+    fps = cap.get(cv2.CAP_PROP_FPS)  # get fps
+    size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))  # get video resolution
+    # create video writer object
+    video_writer = cv2.VideoWriter('./output_videos/test_video_output.avi',
+                                   cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps, size)
+
+
+    ret, frame = cap.read()
+    cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('frame', 600, 600)
+    while ret:
+        print("frame shape: ", frame.shape)
+        draw_image = pipeline(frame, svc, X_scaler)
+        cv2.imshow('frame', draw_image)
+        video_writer.write(draw_image)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        ret, frame = cap.read()
+
+    cap.release()
+    video_writer.release()
+    cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
