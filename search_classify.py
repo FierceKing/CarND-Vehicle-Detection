@@ -1,7 +1,9 @@
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import numpy as np
+import random
 import cv2
+import os
 import glob
 import time
 from sklearn.svm import LinearSVC
@@ -10,9 +12,9 @@ from skimage.feature import hog
 
 from cfg import *
 
-from lesson_functions import load_images,\
-                            get_hog_features, bin_spatial, color_hist,\
-                            extract_features, slide_window, draw_boxes
+from lesson_functions import load_images, \
+    get_hog_features, bin_spatial, color_hist, \
+    extract_features, slide_window, draw_boxes
 
 # NOTE: the next import is only valid for scikit-learn version <= 0.17
 # for scikit-learn >= 0.18 use:
@@ -102,76 +104,25 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
     return on_windows
 
 
-def main():
-    # train_flag = True
-    # # Read in cars and notcars
-    # folder_car = 'data/vehicles'
-    # folder_notcar = 'data/non-vehicles'
-    # cars = load_images(folder_car)
-    # notcars = load_images(folder_notcar)
-    #
-    # # Reduce the sample size because
-    # # The quiz evaluator times out after 13s of CPU time
-    # sample_size = -1
-    # cars = cars[0:sample_size]
-    # notcars = notcars[0:sample_size]
-    #
-    # ### TODO: Tweak these parameters and see how the results change.
-    # color_space = 'RGB'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-    # orient = 9  # HOG orientations
-    # pix_per_cell = 8  # HOG pixels per cell
-    # cell_per_block = 2  # HOG cells per block
-    # hog_channel = 0  # Can be 0, 1, 2, or "ALL"
-    # spatial_size = (16, 16)  # Spatial binning dimensions
-    # hist_bins = 16  # Number of histogram bins
-    # spatial_feat = True  # Spatial features on or off
-    # hist_feat = True  # Histogram features on or off
-    # hog_feat = True  # HOG features on or off
-    # y_start_stop = [None, None]  # Min and max in y to search in slide_window()
-    #
-    # car_features = extract_features(cars, color_space=color_space,
-    #                                 spatial_size=spatial_size, hist_bins=hist_bins,
-    #                                 orient=orient, pix_per_cell=pix_per_cell,
-    #                                 cell_per_block=cell_per_block,
-    #                                 hog_channel=hog_channel, spatial_feat=spatial_feat,
-    #                                 hist_feat=hist_feat, hog_feat=hog_feat)
-    # notcar_features = extract_features(notcars, color_space=color_space,
-    #                                    spatial_size=spatial_size, hist_bins=hist_bins,
-    #                                    orient=orient, pix_per_cell=pix_per_cell,
-    #                                    cell_per_block=cell_per_block,
-    #                                    hog_channel=hog_channel, spatial_feat=spatial_feat,
-    #                                    hist_feat=hist_feat, hog_feat=hog_feat)
-    #
-    # X = np.vstack((car_features, notcar_features)).astype(np.float64)
-    # # Fit a per-column scaler
-    # X_scaler = StandardScaler().fit(X)
-    #
-    # # Apply the scaler to X
-    # scaled_X = X_scaler.transform(X)
-    #
-    # # Define the labels vector
-    # y = np.hstack((np.ones(len(car_features)), np.zeros(len(notcar_features))))
-    #
-    # # Split up data into randomized training and test sets
-    # rand_state = np.random.randint(0, 100)
-    # X_train, X_test, y_train, y_test = train_test_split(
-    #     scaled_X, y, test_size=0.2, random_state=rand_state)
-    #
-    # print('Using:', orient, 'orientations', pix_per_cell,
-    #       'pixels per cell and', cell_per_block, 'cells per block')
-    # print('Feature vector length:', len(X_train[0]))
-    # # Use a linear SVC
-    # svc = LinearSVC()
-    # # Check the training time for the SVC
-    # t = time.time()
-    # svc.fit(X_train, y_train)
-    # t2 = time.time()
-    # print(round(t2 - t, 2), 'Seconds to train SVC...')
-    # # Check the score of the SVC
-    # print('Test Accuracy of SVC = ', round(svc.score(X_test, y_test), 4))
-    # # Check the prediction time for a single sample
-    # t = time.time()
+def pipeline(image, svc, X_scaler):
+    draw_image = np.copy(image)
+    for y_start_stop, xy_window, xy_overlap in zip(y_bound_list, xy_winshape, overlap_xy):
+        windows = slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
+                               xy_window=xy_window, xy_overlap=xy_overlap)
 
+        hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_space,
+                                     spatial_size=spatial_size, hist_bins=hist_bins,
+                                     orient=orient, pix_per_cell=pix_per_cell,
+                                     cell_per_block=cell_per_block,
+                                     hog_channel=hog_channel, spatial_feat=spatial_feat,
+                                     hist_feat=hist_feat, hog_feat=hog_feat)
+        color = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+        draw_image = draw_boxes(draw_image, hot_windows, color=color,
+                                thick=3)
+    return draw_image
+
+
+def main():
     from sklearn.externals import joblib
     scaler_filename = 'X_scaler.pkl'
     clf_filename = 'svc.pkl'
@@ -179,27 +130,43 @@ def main():
     svc = joblib.load(clf_filename)
 
     image = mpimg.imread('test_images/test4.jpg')
-    draw_image = np.copy(image)
-
     # Uncomment the following line if you extracted training
     # data from .png images (scaled 0 to 1 by mpimg) and the
     # image you are searching is a .jpg (scaled 0 to 255)
-    image = image.astype(np.float32)/255
+    image = image.astype(np.float32) / 255
 
-    windows = slide_window(image, x_start_stop=[None, None], y_start_stop=y_start_stop,
-                           xy_window=(120, 120), xy_overlap=(0.5, 0.5))
+    draw_image = pipeline(image, svc, X_scaler)
 
-    hot_windows = search_windows(image, windows, svc, X_scaler, color_space=color_space,
-                                 spatial_size=spatial_size, hist_bins=hist_bins,
-                                 orient=orient, pix_per_cell=pix_per_cell,
-                                 cell_per_block=cell_per_block,
-                                 hog_channel=hog_channel, spatial_feat=spatial_feat,
-                                 hist_feat=hist_feat, hog_feat=hog_feat)
-
-    window_img = draw_boxes(draw_image, hot_windows, color=(0, 0, 255), thick=6)
-
-    plt.imshow(window_img)
+    plt.imshow(draw_image)
     plt.show()
+    #
+    # filename = os.path.abspath('project_video.mp4')
+    # cap = cv2.VideoCapture(filename)
+    # fps = cap.get(cv2.CAP_PROP_FPS)  # get fps
+    # size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+    #         int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))  # get video resolution
+    # # create video writer object
+    # video_writer = cv2.VideoWriter('./output_videos/project_output.avi',
+    #                                cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps, size)
+    #
+    #
+    # ret, frame = cap.read()
+    # cv2.namedWindow('image', cv2.WINDOW_NORMAL)
+    # cv2.resizeWindow('image', 600, 600)
+    # while ret:
+    #     print("frame shape: ", frame.shape)
+    #     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    #     draw_image = pipeline(frame, svc, X_scaler)
+    #     draw_image = cv2.cvtColor(draw_image, cv2.COLOR_RGB2BGR)
+    #     cv2.imshow('frame', draw_image)
+    #     video_writer.write(draw_image)
+    #     # if cv2.waitKey(1) & 0xFF == ord('q'):
+    #     #     break
+    #     ret, frame = cap.read()
+    #
+    # cap.release()
+    # video_writer.release()
+    # cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':

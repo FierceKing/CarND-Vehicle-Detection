@@ -20,6 +20,7 @@ from lesson_functions import load_images,\
 # NOTE: the next import is only valid for scikit-learn version <= 0.17
 # for scikit-learn >= 0.18 use:
 from sklearn.model_selection import train_test_split
+from cfg import *
 
 
 
@@ -107,31 +108,31 @@ def search_windows(img, windows, clf, scaler, color_space='RGB',
 
 
 def main():
-    train_flag = True
-    # Read in cars and notcars
-    folder_car = 'data/vehicles'
-    folder_notcar = 'data/non-vehicles'
+    # train_flag = True
+    # # Read in cars and notcars
+    # folder_car = 'data/vehicles'
+    # folder_notcar = 'data/non-vehicles'
     cars = load_images(folder_car)
     notcars = load_images(folder_notcar)
-
-    # Reduce the sample size because
-    # The quiz evaluator times out after 13s of CPU time
+    #
+    # # Reduce the sample size because
+    # # The quiz evaluator times out after 13s of CPU time
     sample_size = -1
     cars = cars[0:sample_size]
     notcars = notcars[0:sample_size]
-
-    ### TODO: Tweak these parameters and see how the results change.
-    color_space = 'RGB'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
-    orient = 9  # HOG orientations
-    pix_per_cell = 8  # HOG pixels per cell
-    cell_per_block = 2  # HOG cells per block
-    hog_channel = 0  # Can be 0, 1, 2, or "ALL"
-    spatial_size = (16, 16)  # Spatial binning dimensions
-    hist_bins = 16  # Number of histogram bins
-    spatial_feat = True  # Spatial features on or off
-    hist_feat = True  # Histogram features on or off
-    hog_feat = True  # HOG features on or off
-    y_start_stop = [None, None]  # Min and max in y to search in slide_window()
+    #
+    # ### TODO: Tweak these parameters and see how the results change.
+    # color_space = 'YCrCb'  # Can be RGB, HSV, LUV, HLS, YUV, YCrCb
+    # orient = 8  # HOG orientations
+    # pix_per_cell = 4  # HOG pixels per cell
+    # cell_per_block = 1  # HOG cells per block
+    # hog_channel = 'ALL'  # Can be 0, 1, 2, or "ALL"
+    # spatial_size = (16, 16)  # Spatial binning dimensions
+    # hist_bins = 16  # Number of histogram bins
+    # spatial_feat = False  # Spatial features on or off
+    # hist_feat = True  # Histogram features on or off
+    # hog_feat = True  # HOG features on or off
+    # y_start_stop = [None, None]  # Min and max in y to search in slide_window()
 
     car_features = extract_features(cars, color_space=color_space,
                                     spatial_size=spatial_size, hist_bins=hist_bins,
