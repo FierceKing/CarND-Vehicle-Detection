@@ -45,7 +45,7 @@ def draw_labeled_bboxes(img, labels):
         # Draw the box on the image
         cv2.rectangle(img, bbox[0], bbox[1], (0, 0, 255), 6)
     # Return the image
-    return img, bbox
+    return img
 
 
 def draw_img_and_heatmap(image, box_list):
@@ -58,7 +58,7 @@ def draw_img_and_heatmap(image, box_list):
     heat = gaussian_blur(heat, kernel_size=101)
 
     # Apply threshold to help remove false positives
-    heat = apply_threshold(heat, 3)
+    heat = apply_threshold(heat, 1)
 
     # Visualize the heatmap when displaying
     heatmap = np.clip(heat, 0, 255)

@@ -152,27 +152,27 @@ def main():
     clf_filename = 'svc.pkl'
     X_scaler = joblib.load(scaler_filename)
     svc = joblib.load(clf_filename)
-
-    image = cv2.imread('test_images/test1.jpg')
-    t = time.time()
-    draw_image, box_list = pipeline(image, svc, X_scaler)
-    t2 = time.time()
-    # save hot_windows
-    box_list_filename = 'data_output/box_list.pkl'
-    joblib.dump(box_list, box_list_filename)
-    print(round(t2 - t, 2), 'Seconds to test a single image')
-    draw_img, heatmap = draw_img_and_heatmap(image, box_list)
-    plt.imshow(cv2.cvtColor(draw_img, cv2.COLOR_BGR2RGB))
-    plt.show()
+    #
+    # image = cv2.imread('test_images/test1.jpg')
+    # t = time.time()
+    # draw_image, box_list = pipeline(image, svc, X_scaler)
+    # t2 = time.time()
+    # # save hot_windows
+    # box_list_filename = 'data_output/box_list.pkl'
+    # joblib.dump(box_list, box_list_filename)
+    # print(round(t2 - t, 2), 'Seconds to test a single image')
+    # draw_img, heatmap = draw_img_and_heatmap(image, box_list)
+    # plt.imshow(cv2.cvtColor(draw_img, cv2.COLOR_BGR2RGB))
+    # plt.show()
 
     # filename = os.path.abspath('project_video.mp4')
-    filename = os.path.abspath('test_video.mp4')
+    filename = os.path.abspath('project_video.mp4')
     cap = cv2.VideoCapture(filename)
     fps = cap.get(cv2.CAP_PROP_FPS)  # get fps
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))  # get video resolution
     # create video writer object
-    video_writer = cv2.VideoWriter('./output_videos/test_video_output.avi',
+    video_writer = cv2.VideoWriter('./output_videos/porject_video_output.avi',
                                    cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps, size)
 
     ret, frame = cap.read()
