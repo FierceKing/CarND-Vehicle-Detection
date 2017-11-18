@@ -11,6 +11,7 @@ from sklearn.preprocessing import StandardScaler
 from skimage.feature import hog
 
 from cfg import *
+from heatmap_draw import draw_img_and_heatmap
 from sklearn.externals import joblib
 
 from lesson_functions import load_images, \
@@ -127,18 +128,32 @@ def pipeline(image, svc, X_scaler):
     return draw_image, box_list
 
 
-def main():
+class BBoxes:
+    def __init__(self):
+        self.list_current = []
+        self.list_previous = []
+        self.buff_size = 3
+        self.old_length_reminder = [0 for _ in range(self.buff_size)]
+        self.delete_length = self.old_length_reminder[0]
+        self.list_all = []
 
+    def add(self, new_list):
+        self.list_previous = self.list_current
+        self.list_current = new_list
+        # remove old list, add new list
+        self.list_all = self.list_all[self.delete_length:] + self.list_current
+        self.old_length_reminder.pop(0)
+        self.old_length_reminder.append(len(self.list_current))
+        self.delete_length = self.old_length_reminder[0]
+
+
+def main():
     scaler_filename = 'X_scaler.pkl'
     clf_filename = 'svc.pkl'
     X_scaler = joblib.load(scaler_filename)
     svc = joblib.load(clf_filename)
 
     image = cv2.imread('test_images/test1.jpg')
-    # Uncomment the following line if you extracted training
-    # data from .png images (scaled 0 to 1 by mpimg) and the
-    # image you are searching is a .jpg (scaled 0 to 255)
-    # image = image.astype(np.float32) / 255
     t = time.time()
     draw_image, box_list = pipeline(image, svc, X_scaler)
     t2 = time.time()
@@ -146,35 +161,40 @@ def main():
     box_list_filename = 'data_output/box_list.pkl'
     joblib.dump(box_list, box_list_filename)
     print(round(t2 - t, 2), 'Seconds to test a single image')
-    plt.imshow(cv2.cvtColor(draw_image, cv2.COLOR_BGR2RGB))
+    draw_img, heatmap = draw_img_and_heatmap(image, box_list)
+    plt.imshow(cv2.cvtColor(draw_img, cv2.COLOR_BGR2RGB))
     plt.show()
 
-    # # filename = os.path.abspath('project_video.mp4')
-    # filename = os.path.abspath('test_video.mp4')
-    # cap = cv2.VideoCapture(filename)
-    # fps = cap.get(cv2.CAP_PROP_FPS)  # get fps
-    # size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-    #         int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))  # get video resolution
-    # # create video writer object
-    # video_writer = cv2.VideoWriter('./output_videos/test_video_output.avi',
-    #                                cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps, size)
-    #
-    #
-    # ret, frame = cap.read()
-    # cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow('frame', 600, 600)
-    # while ret:
-    #     print("frame shape: ", frame.shape)
-    #     draw_image, hot_windows = pipeline(frame, svc, X_scaler)
-    #     cv2.imshow('frame', draw_image)
-    #     video_writer.write(draw_image)
-    #     if cv2.waitKey(1) & 0xFF == ord('q'):
-    #         break
-    #     ret, frame = cap.read()
-    #
-    # cap.release()
-    # video_writer.release()
-    # cv2.destroyAllWindows()
+    # filename = os.path.abspath('project_video.mp4')
+    filename = os.path.abspath('test_video.mp4')
+    cap = cv2.VideoCapture(filename)
+    fps = cap.get(cv2.CAP_PROP_FPS)  # get fps
+    size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))  # get video resolution
+    # create video writer object
+    video_writer = cv2.VideoWriter('./output_videos/test_video_output.avi',
+                                   cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps, size)
+
+    ret, frame = cap.read()
+    cv2.namedWindow('frame', cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('frame', 600, 600)
+    bbox = BBoxes()
+    while ret:
+        draw_image, box_list = pipeline(frame, svc, X_scaler)
+        bbox.add(box_list)
+        draw_img, heatmap = draw_img_and_heatmap(frame, bbox.list_all)
+        heatmap = heatmap/np.max(heatmap)*255
+        heatmap = heatmap.astype(np.uint8)
+        heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_HOT)
+        cv2.imshow('frame', draw_img)
+        video_writer.write(draw_img)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        ret, frame = cap.read()
+
+    cap.release()
+    video_writer.release()
+    cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
