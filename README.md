@@ -154,3 +154,21 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 Besids what's mentioned above, I want to note that the algorithm for smoothing the output box is not perfect. Although I tried to use Gaussian blur, it is still jumping around, I thought of average the bbox start and stop point, but the total number of cars that is tracking can vary, I cannot think of an effective way to track it. In the course it was mentioned that getting the feature for the whole image, then selectively take the features from the pool is much faster than feeding individual picture patches into the pipline, but I couldn't get enough time to implement, the same reason why I didn't add lane line detection to this project, hope it's not too disappointing to submit like this, will come back around when I get chance.
 
+### File list of my work:
+`vehicle_detection.py`    main detection file
+
+`train_clf.py` train classifier
+
+`cfg.py` global variables
+
+`lesson_functions.py` contains a lot of functions from class, used in many places
+
+`heatmap_draw.py` contains function to draw heat map and final bounding box.
+
+`./output_videos/project_video_output.m4v` project video, a green part at the bottom emerge after compression.
+
+[https://youtu.be/3XbAJEAkZTM](https://youtu.be/3XbAJEAkZTM) video can also be found here
+
+`./output_images/` support images for this README.md
+
+`README.md` project writeup
