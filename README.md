@@ -1,6 +1,4 @@
-## Writeup Template
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
+# Vehicle Detection and Tracking
 ---
 
 **Vehicle Detection Project**
@@ -27,49 +25,109 @@ The goals / steps of this project are the following:
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
----
-### Writeup / README
-
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Vehicle-Detection/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
-
-You're reading it!
 
 ### Histogram of Oriented Gradients (HOG)
 
 #### 1. Explain how (and identify where in your code) you extracted HOG features from the training images.
 
-The code for this step is contained in the first code cell of the IPython notebook (or in lines # through # of the file called `some_file.py`).  
+The code for this step is contained in the 2nd code cell of the Jupyter notebook.
 
 I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an example of one of each of the `vehicle` and `non-vehicle` classes:
 
-![alt text][image1]
+![car_notcar](output_images/car_notcar.png)
 
 I then explored different color spaces and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
+Here is an example using the `YCrCb` color space and HOG parameters of `orientations=9`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
 
-
-![alt text][image2]
+![hog_features](output_images/hog_features.png)
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
-I tried various combinations of parameters and...
+Initially, I used only HOG features in the RGB color space, and take only 1 channel as input, at the same time, I used color bin features, all the parameters are the same like the ones I used in the course. I was suprised by the classifier accuracy, 94% ! Considering it is not easy get 94% accuracy in deep learning model, I thought it was very good result, until I tried it on real image. related code is in `vehicle_detection.py` line `156-166`, the result was ... not good, look.
+
+![detection_failure](output_images/detection_failure.png)
+
+So I had to go back to play with my feature extraction. I added spatial feature, and changed `pix_per_cell = 4`, `cell_per_block = 1`, `hog_channel = 'ALL'`, `spatial_size = (16, 16)`, etc. and trained again, this time, the accuracy jump to 97.89%. Great! But to be disappointing, it is still not good when I use it on real image.
+
+![not very good](output_images/bbox_detected.png)
+
+During trouble shooting and test on images and video, I find it very confusing to use different color space due to opencv's BGR preference, so I ended up read all the images and videos with **OpenCV**. to my suprise, when I train the classifier agian, the accuracy jumped again to 99.04 %. There must be something wrong with my color space before. What's more, the trail on road image gives very clean result! Lesson learnt, if you need to use OpenCV, try to use OpenCV everywhere. Look at the result:
+
+![good output](output_images/good_output.png)
+
+At this point, I think my classifier is good to go, but I did minor change in the parameters, to finally make the accuracy reach 99.32%, dump to disk and make it standard later on. Below are my parameters:
+
+```
+color_space = 'YCrCb'  # Can be BGR, HSV, LUV, HLS, YUV, YCrCb
+orient = 8  # HOG orientations
+pix_per_cell = 8  # HOG pixels per cell
+cell_per_block = 2  # HOG cells per block
+hog_channel = 'ALL'  # Can be 0, 1, 2, or "ALL"
+spatial_size = (32, 32)  # Spatial binning dimensions
+hist_bins = 32  # Number of histogram bins
+spatial_feat = True  # Spatial features on or off
+hist_feat = True  # Histogram features on or off
+hog_feat = True  # HOG features on or off
+```
 
 #### 3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM using...
+I trained a linear SVM using HOG, spatial, bined color histogram features all together. The training takes place in `train_clf.py`, after training, the classifier is dumped to local disk for further usage.
 
 ### Sliding Window Search
 
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+I took the advise in the course, to use different sizes of windows and search different regions for each size. Smaller window only search near horizon, larger window will scan a bigger range. Below is a demostration of the window searching area, I made an algorithm to automatically generate window sizes and corresponding search area, here is a demostration of how it works, it's not final window series I used though:
 
-![alt text][image3]
+![window search area](output_images/bbox_series.png)
+
+
+All you need to do is modify the following 4 lines in `cfg.py`:
+
+```
+y_start_stop = [350, 700]  # Min and max in y to search in slide_window()
+smallest = [420, 500]  # vertical boundaries for the smallest slid window
+...
+ysize_series = (64 * np.logspace(-1, 3, num=3 + 1 + 1, base=1.5)).astype(int)
+...
+min_overlap = 0.6
+```
+
+then it will calculate series of parameters:
+
+```
+ysize_series:  
+[ 42  64  96 144 216]
+y_bound_list:  
+[[420 500]
+ [409 523]
+ [394 558]
+ [375 614]
+ [350 700]]
+xy_winshape:  
+[[ 42  42]
+ [ 64  64]
+ [ 96  96]
+ [144 144]
+ [216 216]]
+overlap_xy 
+[[ 0.6016731   0.6984127 ]
+ [ 0.60416667  0.609375  ]
+ [ 0.60215054  0.64583333]
+ [ 0.60555556  0.67013889]
+ [ 0.62108262  0.68981481]]
+```
+
+iterate through the above parameters, you will get all the windows you want.
+
+I set the minimum overlap to be 60%, it seems to give a good result.
+
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
+Ultimately I searched on 5 scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
 
 ![alt text][image4]
 ---
@@ -77,7 +135,7 @@ Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spat
 ### Video Implementation
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](./project_video.mp4)
+Here's a [**YouTub** link to my video result](https://youtu.be/3XbAJEAkZTM)
 
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.

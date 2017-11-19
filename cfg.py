@@ -23,7 +23,7 @@ spatial_feat = True  # Spatial features on or off
 hist_feat = True  # Histogram features on or off
 hog_feat = True  # HOG features on or off
 y_start_stop = [350, 700]  # Min and max in y to search in slide_window()
-smallest = [420, 500]
+smallest = [420, 500]  # vertical boundaries for the smallest slid window
 horizon = np.mean(smallest)
 # calculate the y height series for window size series, eg [28, 28] [64, 64]
 ysize_series = (64 * np.logspace(-1, 3, num=3 + 1 + 1, base=1.5)).astype(int)
