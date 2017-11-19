@@ -12,16 +12,6 @@ The goals / steps of this project are the following:
 * Run your pipeline on a video stream (start with the test_video.mp4 and later implement on full project_video.mp4) and create a heat map of recurring detections frame by frame to reject outliers and follow detected vehicles.
 * Estimate a bounding box for vehicles detected.
 
-[//]: # (Image References)
-[image1]: ./examples/car_not_car.png
-[image2]: ./examples/HOG_example.jpg
-[image3]: ./examples/sliding_windows.jpg
-[image4]: ./examples/sliding_window.jpg
-[image5]: ./examples/bboxes_and_heat.png
-[image6]: ./examples/labels_map.png
-[image7]: ./examples/output_bboxes.png
-[video1]: ./project_video.mp4
-
 ## [Rubric](https://review.udacity.com/#!/rubrics/513/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
@@ -44,7 +34,7 @@ Here is an example using the `YCrCb` color space and HOG parameters of `orientat
 
 #### 2. Explain how you settled on your final choice of HOG parameters.
 
-Initially, I used only HOG features in the RGB color space, and take only 1 channel as input, at the same time, I used color bin features, all the parameters are the same like the ones I used in the course. I was suprised by the classifier accuracy, 94% ! Considering it is not easy get 94% accuracy in deep learning model, I thought it was very good result, until I tried it on real image. related code is in `vehicle_detection.py` line `156-166`, the result was ... not good, look.
+Initially, I used only HOG features in the RGB color space, and take only 1 channel as input, at the same time, I used color bin features, all the parameters are the same like the ones I used in the course. I was suprised by the classifier accuracy, 94% ! Considering it is not easy get 94% accuracy in deep learning model, I thought it was very good result, until I tried it on real image. related code is in `vehicle_detection.py` line `156-166`, the result was ... not good:
 
 ![detection_failure](output_images/detection_failure.png)
 
@@ -79,7 +69,7 @@ I trained a linear SVM using HOG, spatial, bined color histogram features all to
 
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I took the advise in the course, to use different sizes of windows and search different regions for each size. Smaller window only search near horizon, larger window will scan a bigger range. Below is a demostration of the window searching area, I made an algorithm to automatically generate window sizes and corresponding search area, here is a demostration of how it works, it's not final window series I used though:
+I took the advise in the course, to use different sizes of windows and search different regions for each size. Smaller window only search near horizon, larger window will scan a bigger range. Below is a demostration of the window searching area, I made an algorithm to automatically generate window sizes and corresponding search area, the code (in `cfg.py`)is not that readable, if you're patient enough, it's just simple math. Here is a demostration of how it works:
 
 ![window search area](output_images/bbox_series.png)
 
@@ -127,9 +117,10 @@ I set the minimum overlap to be 60%, it seems to give a good result.
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Ultimately I searched on 5 scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
+Ultimately I searched on 5 scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images, I put gussian blur to heat map, hoping it could give smoother result (but actually it doesn't work that well, need more tuning):
 
-![alt text][image4]
+![result_on_test_img](output_images/result_on_test_img.png)
+
 ---
 
 ### Video Implementation
@@ -140,21 +131,20 @@ Here's a [**YouTub** link to my video result](https://youtu.be/3XbAJEAkZTM)
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
+I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap, in order to make the result smooth, I defined a `BBoxs` class, save boxes detected by n consecutive images, n is the buffer size, then plot all these boxes into a single map and thresholded that map to identify vehicle positions. Before Thresholding, I also applied Gussian blur, for the sake of making it smooth. It didn't work out like magic as I expected, but also not make things worse, so I kept it as a feature that might be implemented better in the future. I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.  
 
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
-### Here are six frames and their corresponding heatmaps:
+### Here are four frames and their corresponding heatmaps:
 
-![alt text][image5]
+![box_vs_heat](output_images/box_vs_heat.png)
 
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
+### Here is how the output of `scipy.ndimage.measurements.label()` looks like:
+
+![labels](output_images/labels.png)
 
 ### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
-
-
+![result in the video](output_images/result.png)
 
 ---
 
@@ -162,5 +152,5 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 #### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+Besids what's mentioned above, I want to note that the algorithm for smoothing the output box is not perfect. Although I tried to use Gaussian blur, it is still jumping around, I thought of average the bbox start and stop point, but the total number of cars that is tracking can vary, I cannot think of an effective way to track it. In the course it was mentioned that getting the feature for the whole image, then selectively take the features from the pool is much faster than feeding individual picture patches into the pipline, but I couldn't get enough time to implement, the same reason why I didn't add lane line detection to this project, hope it's not too disappointing to submit like this, will come back around when I get chance.
 
